@@ -1,0 +1,11 @@
+{
+    "name": "slog",
+    "url": "https://github.com/sEngineLibs/slog",
+    "license": "Apache",
+    "tags": ["log", "console"],
+    "version": "0.0.1",
+    "classPath": "src",
+    "description": "A small library for logging in Haxe",
+    "contributors": ["smoothie"],
+    "releasenote": "First release"
+}
