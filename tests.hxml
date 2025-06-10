@@ -1,0 +1,5 @@
+-cp src
+-cp tests
+-D log
+--main tests.Tests
+--interp

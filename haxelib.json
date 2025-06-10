@@ -3,9 +3,9 @@
     "url": "https://github.com/sEngineLibs/slog",
     "license": "Apache",
     "tags": ["log", "console"],
-    "version": "0.0.1",
+    "version": "0.0.2",
     "classPath": "src",
-    "description": "A small library for logging in Haxe",
+    "description": "A library for easy logging in Haxe",
     "contributors": ["smoothie"],
-    "releasenote": "First release"
+    "releasenote": "Add colored logging"
 }
