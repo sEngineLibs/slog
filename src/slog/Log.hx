@@ -53,6 +53,12 @@ class Log {
 @:access(slog.Log)
 class Logger {
 	extern static inline function logFormatted(value:String, ?values:{}) {
+		for (f in Reflect.fields(values))
+			value = value.replace('{$f}', Std.string(Reflect.field(values, f)));
+
+		var original = value;
+		var regex = new EReg("%([RGBOYW]+)\\(([^\\)]*)\\)", "g");
+
 		#if js
 		var styleMap = [
 			"R" => "color: red;",
@@ -63,13 +69,24 @@ class Logger {
 			"W" => "font-weight: bold;"
 		];
 
-		inline function wrapStyle(flags:String, text:String):String {
-			var styles = [
+		inline function cssFromFlags(flags:String):String
+			return [
 				for (i in 0...flags.length)
-					if (styleMap.exists(flags.charAt(i))) styleMap.get(flags.charAt(i))
-			];
-			return '<span style="${styles.join("")}">$text</span>';
-		}
+					if (styleMap.exists(flags.charAt(i))) styleMap[flags.charAt(i)]
+			].join("");
+
+		var styles:Array<String> = [];
+		var msg = regex.map(original, re -> {
+			final css = cssFromFlags(re.matched(1));
+			styles.push(css);
+			styles.push("");
+			return '%c${re.matched(2)}%c';
+		});
+
+		return {
+			msg: msg,
+			styles: styles
+		};
 		#elseif sys
 		var ansiMap = [
 			"R" => "\x1b[31m",
@@ -87,14 +104,6 @@ class Logger {
 			];
 			return '${codes.join("")}$text\x1b[0m';
 		}
-		#end
-
-		for (f in Reflect.fields(values))
-			value = value.replace('{$f}', Std.string(Reflect.field(values, f)));
-
-		var original = value;
-		var regex = new EReg("%([RGBOYW]+)\\(([^\\)]*)\\)", "g");
-
 		var formatted = regex.map(original, re -> {
 			return wrapStyle(re.matched(1), re.matched(2));
 		});
@@ -105,6 +114,7 @@ class Logger {
 			clear: clear,
 			formatted: formatted
 		}
+		#end
 	}
 
 	public var name:String;
@@ -139,6 +149,10 @@ class Logger {
 			file = null;
 		}
 		#end
+	}
+
+	extern inline function get_isClosed() {
+		return file == null;
 	}
 	#else
 	public function new(name:String) {
@@ -181,17 +195,17 @@ class Logger {
 			});
 			#if sys
 			Sys.println(output.formatted);
-			if (!isClosed)
-				file.writeString('${output.clear}\n');
 			#elseif js
-			js.Lib.console.log(output.formatted);
+			var out = logFormatted(format, {
+				datetime: DateTools.format(Date.now(), "%H:%M:%S"),
+				level: level.toString(),
+				name: name,
+				message: message
+			});
+			js.Syntax.code("console.log").apply(null, [out.msg].concat(out.styles));
 			#end
 		}
 		#end
-	}
-
-	extern inline function get_isClosed() {
-		return file == null;
 	}
 }
 

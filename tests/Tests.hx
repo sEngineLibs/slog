@@ -9,6 +9,5 @@ class Tests {
 		Log.warning("a");
 		Log.error("a");
 		Log.fatal("a");
-		Log.close();
 	}
 }

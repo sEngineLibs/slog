@@ -2,4 +2,12 @@
 -cp tests
 -D log
 --main tests.Tests
+--each
+
+--next
 --interp
+
+--next
+--js bin/main.js
+--next
+--cmd node bin/main.js
