@@ -5,7 +5,7 @@ import haxe.PosInfos;
 using StringTools;
 
 class Log {
-	public static var root(default, null) = new Logger("root", "log.txt");
+	public static var root(default, null) = new Logger("root");
 
 	#if sys
 	#if log
