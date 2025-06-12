@@ -1,13 +1,16 @@
 package slog;
 
-import haxe.PosInfos;
-
 using StringTools;
 
-class Log {
-	public static var root(default, null) = new Logger("root");
+@:forward()
+private abstract PosInfo(haxe.PosInfos) from haxe.PosInfos {
+	public function toString() {
+		return '${this.fileName}:${this.lineNumber}';
+	}
+}
 
-	#if sys
+class Log {
+	#if (nodejs || sys)
 	#if log
 	static var loggers:Array<Logger> = [];
 	#end
@@ -21,45 +24,74 @@ class Log {
 	}
 	#end
 
-	extern public static inline function error(message:String) {
+	public static var root(default, null) = new Logger("ROOT");
+
+	public static inline function error(message:String) {
 		root.error(message);
 	}
 
-	extern public static inline function debug(message:String) {
+	public static inline function debug(message:String) {
 		root.debug(message);
 	}
 
-	extern public static inline function warning(message:String) {
+	public static inline function warning(message:String) {
 		root.warning(message);
 	}
 
-	extern public static inline function info(message:String) {
+	public static inline function info(message:String) {
 		root.info(message);
 	}
 
-	extern public static inline function fatal(message:String) {
+	public static inline function fatal(message:String) {
 		root.fatal(message);
 	}
 
-	extern public static inline function trace(message:String, level:LogLevel = DEBUG, ?pos:PosInfo) {
+	public static inline function trace(message:String, level:LogLevel = DEBUG, ?pos:PosInfo) {
 		root.trace(message, level, pos);
 	}
 
-	extern public static inline function log(message:String, level:LogLevel = DEBUG) {
+	public static inline function log(message:String, level:LogLevel = DEBUG) {
 		root.log(message, level);
 	}
 }
 
 @:access(slog.Log)
 class Logger {
-	extern static inline function logFormatted(value:String, ?values:{}) {
+	static inline function logFormatted(value:String, ?values:{}) {
 		for (f in Reflect.fields(values))
 			value = value.replace('{$f}', Std.string(Reflect.field(values, f)));
 
 		var original = value;
 		var regex = new EReg("%([RGBOYW]+)\\(([^\\)]*)\\)", "g");
 
-		#if js
+		#if (nodejs || sys)
+		var ansiMap = [
+			"R" => "\x1b[31m",
+			"G" => "\x1b[32m",
+			"Y" => "\x1b[38;5;226m",
+			"O" => "\x1b[38;5;208m",
+			"B" => "\x1b[34m",
+			"W" => "\x1b[1m"
+		];
+
+		inline function wrapStyle(flags:String, text:String):String {
+			var codes = [
+				for (i in 0...flags.length)
+					if (ansiMap.exists(flags.charAt(i))) ansiMap.get(flags.charAt(i))
+			];
+			return '${codes.join("")}$text\x1b[0m';
+		}
+		var formatted = regex.map(original, re -> {
+			return wrapStyle(re.matched(1), re.matched(2));
+		});
+
+		var clear = regex.map(original, re -> re.matched(2));
+
+		return {
+			clear: clear,
+			formatted: formatted
+		}
+		#elseif js
 		var styleMap = [
 			"R" => "color: red;",
 			"G" => "color: green;",
@@ -87,33 +119,6 @@ class Logger {
 			msg: msg,
 			styles: styles
 		};
-		#elseif sys
-		var ansiMap = [
-			"R" => "\x1b[31m",
-			"G" => "\x1b[32m",
-			"Y" => "\x1b[38;5;226m",
-			"O" => "\x1b[38;5;208m",
-			"B" => "\x1b[34m",
-			"W" => "\x1b[1m"
-		];
-
-		inline function wrapStyle(flags:String, text:String):String {
-			var codes = [
-				for (i in 0...flags.length)
-					if (ansiMap.exists(flags.charAt(i))) ansiMap.get(flags.charAt(i))
-			];
-			return '${codes.join("")}$text\x1b[0m';
-		}
-		var formatted = regex.map(original, re -> {
-			return wrapStyle(re.matched(1), re.matched(2));
-		});
-
-		var clear = regex.map(original, re -> re.matched(2));
-
-		return {
-			clear: clear,
-			formatted: formatted
-		}
 		#end
 	}
 
@@ -122,9 +127,11 @@ class Logger {
 	public var level:LogLevel = DEBUG;
 	public var format:String = "%B({datetime}) :{name}: {message}";
 
-	#if sys
+	#if (nodejs || sys)
+	#if log
 	var file:sys.io.FileOutput;
 	var isClosed(get, never):Bool;
+	#end
 
 	public function new(name:String, ?file:String) {
 		#if log
@@ -135,14 +142,14 @@ class Logger {
 		#end
 	}
 
-	extern public inline function open(file:String) {
+	public inline function open(file:String) {
 		#if log
 		close();
 		this.file = sys.io.File.write(file);
 		#end
 	}
 
-	extern public inline function close() {
+	public inline function close() {
 		#if log
 		if (!isClosed) {
 			file.close();
@@ -151,7 +158,7 @@ class Logger {
 		#end
 	}
 
-	extern inline function get_isClosed() {
+	inline function get_isClosed() {
 		return file == null;
 	}
 	#else
@@ -160,31 +167,31 @@ class Logger {
 	}
 	#end
 
-	extern public inline function debug(message:String) {
+	public inline function debug(message:String) {
 		log('%G($message)', DEBUG);
 	}
 
-	extern public inline function info(message:String) {
+	public inline function info(message:String) {
 		log('%Y($message)', INFO);
 	}
 
-	extern public inline function warning(message:String) {
+	public inline function warning(message:String) {
 		log('%O($message)', WARNING);
 	}
 
-	extern public inline function error(message:String) {
+	public inline function error(message:String) {
 		log('%R($message)', ERROR);
 	}
 
-	extern public inline function fatal(message:String) {
+	public inline function fatal(message:String) {
 		log('%RW($message)', FATAL);
 	}
 
-	extern public inline function trace(message:String, level:LogLevel = DEBUG, ?pos:PosInfo) {
+	public inline function trace(message:String, level:LogLevel = DEBUG, ?pos:PosInfo) {
 		log('$pos $message', level);
 	}
 
-	extern public inline function log(message:String, level:LogLevel = DEBUG) {
+	public inline function log(message:String, level:LogLevel = DEBUG) {
 		#if log
 		if (this.level <= level) {
 			var output = logFormatted(format, {
@@ -193,7 +200,7 @@ class Logger {
 				name: name,
 				message: message
 			});
-			#if sys
+			#if (nodejs || sys)
 			Sys.println(output.formatted);
 			#elseif js
 			var out = logFormatted(format, {
@@ -255,12 +262,5 @@ enum abstract LogLevel(Int) to Int {
 			case FATAL: "FATAL";
 			default: Std.string(this);
 		}
-	}
-}
-
-@:forward()
-private abstract PosInfo(PosInfos) from PosInfos {
-	public function toString() {
-		return '${this.fileName}:${this.lineNumber}';
 	}
 }

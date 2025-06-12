@@ -4,10 +4,17 @@
 --main tests.Tests
 --each
 
---next
 --interp
 
 --next
---js bin/main.js
+--python bin/main.py
+--cmd python bin/main.py
+
 --next
+--js bin/main.js
 --cmd node bin/main.js
+
+--next
+--cpp bin/cpp
+--cmd cd bin/cpp
+--cmd Tests.exe

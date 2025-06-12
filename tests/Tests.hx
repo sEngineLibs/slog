@@ -4,10 +4,19 @@ import slog.Log;
 
 class Tests {
 	static function main() {
-		Log.debug("a");
-		Log.info("a");
-		Log.warning("a");
-		Log.error("a");
-		Log.fatal("a");
+		#if eval
+		Log.info("Testing in Eval");
+		#elseif python
+		Log.info("Testing in Python");
+		#elseif js
+		Log.info("Testing in JS");
+		#elseif cpp
+		Log.info("Testing in C++");
+		#end
+
+		Log.debug("debug");
+		Log.warning("warning");
+		Log.error("error");
+		Log.fatal("fatal");
 	}
 }
