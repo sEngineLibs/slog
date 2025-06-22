@@ -1,6 +1,6 @@
 {
     "name": "slog",
-    "url": "https://github.com/sEngineLibs/slog",
+    "url": "https://github.com/selibs/slog",
     "license": "Apache",
     "tags": ["log", "console"],
     "version": "0.0.3",
